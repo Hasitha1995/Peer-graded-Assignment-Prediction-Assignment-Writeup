@@ -1,0 +1,107 @@
+# Peer-graded Assignment: Prediction Assignment Writeup
+
+``` {r echo = FALSE}
+today= format(Sys.Date(),"%d %B %Y")
+```
+
+##### Hasitha Ranawaka, `r today`
+
+### Introduction
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+### Data Processing
+
+##### Loading required R packages
+
+``` {r results ="hide"}
+set.seed(5)
+library(dplyr)
+library(ggplot2)
+library(caret)
+```
+
+#### Loading data into R
+
+``` {r cache =TRUE}
+filename_test <- "pml-testing.csv."
+filename_train <- "pml-training.csv"
+
+# checking whether the files exist
+if (!file.exists(filename_test)){
+        fileURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+        download.file(fileURL, filename)
+}
+
+if (!file.exists(filename_train)){
+        fileURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+        download.file(fileURL, filename)
+}
+
+# Loading data into R
+training = read.csv("./pml-training.csv",na.strings=c("NA","#DIV/0!",""))
+testing = read.csv("./pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
+```
+
+#### Cleaning data
+
+Removing NAs
+
+``` {r, cache = TRUE}
+training <- training[, which(colSums(is.na(training)) == 0)] 
+testing <- testing[, which(colSums(is.na(testing)) == 0)]
+        
+```
+
+Removing unnecessary first few columns
+
+``` {r, cache = TRUE}
+training <- training[,-(1:7)]
+testing <- testing[,-(1:7)]
+```
+
+### Creating crossvalidation datasets
+
+```{r, cache = TRUE}
+inTrain <- createDataPartition(training$classe, p=0.70, list=FALSE)
+train <- training[inTrain, ]
+test <- training[-inTrain, ]
+```
+
+### Modelling
+
+#### Modelling with regression trees
+
+``` {r}
+fit_regtr <- train(classe ~ ., method="rpart", data=train)
+pred_regtr <- predict(fit_regtr, test)
+confMat_regtr = confusionMatrix(test$classe, pred_regtr)
+confMat_regtr
+```
+
+As you can see the accuracy with regression trees is only 0.4382.
+
+``` {r}
+plot(confMat_regtr$table, col = confMat_regtr$byClass, 
+     main = "Regression trees prediction")
+```
+
+#### Modelling with random forest
+
+``` {r,cache = TRUE}
+fit_ranfor <- train(classe ~ ., method="rf", data=train, ntree =10 )
+pred_ranfor <- predict(fit_ranfor, test)
+confMat_ranfor = confusionMatrix(test$classe, pred_ranfor)
+confMat_ranfor
+```
+
+Here the accuray is very good with a value of 0.9891
+
+``` {r}
+plot(confMat_ranfor$table, col = confMat_ranfor$byClass, 
+     main = "Random Forest prediction")
+```
+
+### Conclusion
+
+FOr this particular dataset modelling with random forests is suitable.
